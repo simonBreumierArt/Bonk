@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bonk"
-version = "1.0.0"
+version = "1.0.3"
 title = "Bonk"
 tagline = "Tools for modeling."
 maintainer = "Simon Breumier"
