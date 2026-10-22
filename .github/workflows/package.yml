@@ -23,25 +23,25 @@ jobs:
 
       - name: Process Manifest and Generate Repository
         shell: bash
-        # On passe proprement la version nettoyÃ©e Ã  l'environnement global de l'Ã©tape
+        # On passe proprement la version nettoyée à l'environnement global de l'étape
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           # 1. Nettoyage du 'v' initial de la version en Bash
           CLEAN_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
-          echo "Version dÃ©tectÃ©e : $CLEAN_VERSION"
+          echo "Version détectée : $CLEAN_VERSION"
           
           # On exporte la variable pour que le sous-processus Python puisse la lire
           export ASSIGNED_VERSION="$CLEAN_VERSION"
 
-          # 2. Script Python autonome utilisant l'environnement sÃ©curisÃ©
+          # 2. Script Python autonome utilisant l'environnement sécurisé
           python -c "
           import json, re, os
 
-          # RÃ©cupÃ©ration de la version depuis l'environnement systÃ¨me
+          # Récupération de la version depuis l'environnement système
           clean_version = os.environ.get('ASSIGNED_VERSION', '1.0.0')
 
-          # Lecture forcÃ©e en UTF-8 pour Ã©viter l'erreur d'encodage
+          # Lecture forcée en UTF-8 pour éviter l'erreur d'encodage
           with open('bl_ext_manifest.toml', 'r', encoding='utf-8') as f:
               content = f.read()
           
@@ -54,11 +54,11 @@ jobs:
           with open('bl_ext_manifest.toml', 'w', encoding='utf-8') as f:
               f.write(content)
 
-          # RÃ©cupÃ©ration de l'ID de l'addon depuis le manifest
+          # Récupération de l'ID de l'addon depuis le manifest
           match = re.search(r'^id\s*=\s*\"([^\"]+)\"', content, re.MULTILINE)
           addon_id = match.group(1) if match else 'bonk'
 
-          # GÃ©nÃ©ration de la structure JSON de l'index avec l'URL absolue complÃ¨te
+          # Génération de la structure JSON de l'index avec l'URL absolue complète
           index_data = {
               'schema_version': '1.0.0',
               'extensions': [
@@ -80,8 +80,9 @@ jobs:
 
       - name: Create Zip Package
         run: |
-          # Compresse les fichiers dans le dossier final docs/extensions/
-          zip -r docs/extensions/bonk.zip * -x "docs*" "README.md" ".git*"
+          # Crée l'archive finale en forçant l'encodage UTF-8 natif pour éviter les erreurs d'octets Linux/Windows
+          zip -UN=UTF8 -r docs/extensions/bonk.zip * -x "docs*" "README.md" ".git*"
+
 
       - name: Upload Zip to Release
         uses: softprops/action-gh-release@v2
