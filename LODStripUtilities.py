@@ -9,6 +9,7 @@ from mathutils.bvhtree import BVHTree
 from mathutils.geometry import intersect_point_line
 
 
+from . import UVUtilities
 
 def find_closest_face(pos):
     finalIndex = 0
@@ -849,6 +850,9 @@ def HideExport_fbx(addTriang, red_param=1):
         bpy.ops.object.texel_density_set()
         bpy.ops.object.mode_set(mode='OBJECT')
 
+    else:
+        UVUtilities.clamp_uv()
+
     ############################
     if(addTriang):
         bpy.ops.object.modifier_add(type='TRIANGULATE')
@@ -984,7 +988,7 @@ def isAnyFaceSelected(obj):
     return existSelected
 
 #######################################################
-def createLOD1(col_name, eps=1e-3, subdiv=2, CreaseOffset=0.15, red_param=2):
+def createLOD1(col_name, eps=1e-2, subdiv=2, CreaseOffset=0.15, red_param=2):
     # if len(bpy.context.selected_objects) > 0:
     #     col_name = bpy.context.selected_objects[0].users_collection[0].name
     col_name = bpy.context.collection.name

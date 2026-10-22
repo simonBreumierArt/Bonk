@@ -5,10 +5,10 @@ import numpy as np
 from mathutils import Vector
 from bpy.app.handlers import persistent
 from bpy.props import (
-    FloatProperty, IntProperty,
+    FloatProperty, IntProperty, PointerProperty,
 )
 
-modules_names = ['LODStripUtilities']
+modules_names = ['LODStripUtilities', 'Curve_Reconstructor', 'UVUtilities', 'ModelingUtilities']
 modules_full_names = {}
 for current_module_name in modules_names:
 	modules_full_names[current_module_name] = ('{}.{}'.format(__name__, current_module_name))
@@ -265,7 +265,7 @@ class MESH_OT_MakeQuickLOD(bpy.types.Operator):
         name="Precision",
         description="Distance precision for double face detection",
         min=1e-8, max=1.0,
-        default=1e-3,
+        default=1e-2,
     )
 
     subdiv: IntProperty(
@@ -311,7 +311,7 @@ class MESH_OT_MakeFirstLOD(bpy.types.Operator):
         name="Precision",
         description="Distance precision for double face detection",
         min=1e-8, max=1.0,
-        default=1e-3,
+        default=1e-2,
     )
 
     subdiv: IntProperty(
@@ -457,8 +457,51 @@ class MESH_OT_IncreaseCylinder(bpy.types.Operator):
         IncreaseCylinder()
         
         return {"FINISHED"}
+
+from . import Curve_Reconstructor
+
+class MESH_OT_ReconstructSplineFromCurve(bpy.types.Operator):
+    bl_idname = "mesh.reconstruct_spline"
+    bl_label = "IReconstruct a Bezier spline from a tubular mesh"
+    bl_options = {"REGISTER", "UNDO"}
+
+    precision: FloatProperty(
+            name="precision",
+            description="Curve precision",
+            min=0.0001, max=1.0,
+            default=0.02
+        )
+    
+    def execute(self, context):
+        Curve_Reconstructor.reconstruct_spline_from_tube(self.precision)
         
+        return {"FINISHED"}      
+
+from . import ModelingUtilities
+
+class MESH_OT_GenerateIDColors(bpy.types.Operator):
+    bl_idname = "mesh.generate_id_colors"
+    bl_label = "Generate new materials for a selected collections with random colors for ID baking"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        COLLECTION_NAME = bpy.context.view_layer.active_layer_collection.collection.name
+
+        ModelingUtilities.apply_random_diffuse_with_full_backup(COLLECTION_NAME)
         
+        return {"FINISHED"}   
+
+class MESH_OT_RevertIDColors(bpy.types.Operator):
+    bl_idname = "mesh.revert_id_colors"
+    bl_label = "Revert to previous material before ID maping changes"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        COLLECTION_NAME = bpy.context.view_layer.active_layer_collection.collection.name
+
+        ModelingUtilities.revert_materials_full(COLLECTION_NAME)
+        
+        return {"FINISHED"} 
 
 class HTD_HideAddon_Props(bpy.types.PropertyGroup):
      uvToogle: BoolProperty(
@@ -551,44 +594,38 @@ class VIEW3D_PT_HIdeExport_panel(bpy.types.Panel):
         row.operator("mesh.reduce_cylinder", text="Reduce Cylinder")
         row = box.row()
         row.operator("mesh.increase_cylinder", text="Increase Cylinder")
+        row = box.row()
+        row.operator("mesh.reconstruct_spline", text="Reconstruct Spline")
+        row = box.row()
+        row.operator("mesh.generate_id_colors", text="Generate ID mat")
+        row.operator("mesh.revert_id_colors", text="Remove ID mat")
         
         
+import inspect
+# Fonction utilitaire pour récupérer les classes
+def get_classes():
+    # globals() contient désormais TOUTES les classes définies dans le fichier
+    return [
+        cls
+        for name, cls in globals().items()
+        if inspect.isclass(cls)
+        and (
+            name.startswith("MESH_OT_")
+            or name.startswith("VIEW3D_PT_")
+            or name.startswith("HTD_")
+        )
+    ]
+
+
 def register():
-    bpy.utils.register_class(HTD_HideAddon_Props)
-    bpy.types.Scene.htd = PointerProperty(type=HTD_HideAddon_Props)
-    
-    bpy.utils.register_class(VIEW3D_PT_HIdeExport_panel)
-    bpy.utils.register_class(MESH_OT_HideExport)
-    bpy.utils.register_class(MESH_OT_MakeQuickLOD)
-    bpy.utils.register_class(MESH_OT_MakeFirstLOD)
-    bpy.utils.register_class(MESH_OT_CleanDecals)
-    bpy.utils.register_class(MESH_OT_HideBools)
-    bpy.utils.register_class(MESH_OT_AddMainBevel)
-    bpy.utils.register_class(MESH_OT_AddWeightBevel)
-    bpy.utils.register_class(MESH_OT_MakeCrevice)
-    bpy.utils.register_class(MESH_OT_AutoCreviceUV)
-    bpy.utils.register_class(MESH_OT_RemoveEmptyMat)
-    bpy.utils.register_class(MESH_OT_ReduceCylinder)
-    bpy.utils.register_class(MESH_OT_IncreaseCylinder)
-    
+    for cls in get_classes():
+        bpy.utils.register_class(cls)
+
+    bpy.types.Scene.htd = bpy.props.PointerProperty(type=HTD_HideAddon_Props)
 
 
 def unregister():
-    bpy.utils.unregister_class(MESH_OT_IncreaseCylinder)
-    bpy.utils.unregister_class(MESH_OT_ReduceCylinder)
-    bpy.utils.unregister_class(MESH_OT_RemoveEmptyMat)
-    bpy.utils.unregister_class(MESH_OT_AutoCreviceUV)
-    bpy.utils.unregister_class(MESH_OT_MakeCrevice)
-    bpy.utils.unregister_class(MESH_OT_AddWeightBevel)
-    bpy.utils.unregister_class(MESH_OT_AddMainBevel)
-    bpy.utils.unregister_class(MESH_OT_HideBools)
-    bpy.utils.unregister_class(MESH_OT_CleanDecals)
-    bpy.utils.unregister_class(MESH_OT_MakeFirstLOD)
-    bpy.utils.unregister_class(MESH_OT_MakeQuickLOD)
-    bpy.utils.unregister_class(MESH_OT_HideExport)
-    bpy.utils.unregister_class(VIEW3D_PT_HIdeExport_panel)
-    bpy.utils.register_class(HTD_HideAddon_Props)
     del bpy.types.Scene.htd
-    
-if __name__ == "__main__":
-    register()
+
+    for cls in reversed(get_classes()):
+        bpy.utils.unregister_class(cls)
