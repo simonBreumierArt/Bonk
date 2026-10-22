@@ -1,0 +1,22 @@
+{
+  "version": "v1",
+  "blocklist": [],
+  "data": [
+    {
+      "schema_version": "1.0.0",
+      "id": "bonk",
+      "name": "Bonk",
+      "tagline": "Bonk",
+      "version": "1.0.0",
+      "type": "add-on",
+      "maintainer": "Simon Breumier",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "4.2.0",
+      "archive_url": "./Bonk.zip",
+      "archive_size": 383177,
+      "archive_hash": "sha256:a1c62450ee33d5be320332de90a47c1ef74cbea2b16dd18717295a1754394592"
+    }
+  ]
+}
