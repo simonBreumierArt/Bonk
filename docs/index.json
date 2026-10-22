@@ -3,8 +3,8 @@
     "extensions": [
         {
             "id": "bonk",
-            "version": "1.0.0-test3",
-            "archive_url": "extensions/bonk.zip",
+            "version": "1.0.2",
+            "archive_url": "https://github.iobonk.zip",
             "archive_size": 0,
             "archive_hash": ""
         }

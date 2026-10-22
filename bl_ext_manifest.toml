@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bonk"
-version = "1.0.0-test3"
+version = "1.0.2"
 title = "Bonk"
 tagline = "A set of hard surface modeling tools for blender"
 maintainer = "Simon <votre.email@example.com>"
