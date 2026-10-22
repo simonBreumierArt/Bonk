@@ -1,0 +1,68 @@
+name: Deploy Blender Extension Repository
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Update Version in Manifest
+        shell: bash
+        run: |
+          TAG_VERSION="${{ github.event.release.tag_name }}"
+          CLEAN_VERSION=$(echo "$TAG_VERSION" | sed 's/^v//')
+          python -c "
+          with open('bl_ext_manifest.toml', 'r') as f:
+              lines = f.readlines()
+          with open('bl_ext_manifest.toml', 'w') as f:
+              for line in lines:
+                  if line.strip().startswith('version ='):
+                      f.write(f'version = \"{CLEAN_VERSION}\"\n')
+                  else:
+                      f.write(line)
+          "
+
+      - name: Download Blender CLI Tool
+        run: |
+          # Télécharge l'outil officiel de Blender pour packager les extensions
+          pip install git+https://blender.org
+
+      - name: Build Repository Structure
+        run: |
+          # 1. Crée la structure requise par Blender
+          mkdir -p repo/extensions/bonk
+          
+          # 2. Copie vos fichiers sources dans le dossier de build (en excluant les éléments Git/CI)
+          rsync -av --progress . repo/extensions/bonk/ --exclude repo --exclude .git --exclude .github --exclude README.md
+          
+          # 3. Génère le fichier index.json obligatoire et le fichier .zip final
+          blender-extensions-cli build --repo-dir=repo/
+
+      - name: Upload Zip to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: repo/extensions/bonk/*.zip
+
+      - name: Commit and Push index.json to GitHub Pages
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # On déplace l'index.json à la racine ou dans un dossier suivi pour GitHub Pages
+          # Dans cet exemple, on pousse les fichiers générés sur la branche principale pour mettre à jour Pages
+          git add repo/
+          git commit -m "Chore: Update extension repository index [skip ci]"
+          git push origin main
