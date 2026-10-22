@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Permet d'avoir tout l'historique pour les pushs
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,32 +39,30 @@ jobs:
 
       - name: Download Blender CLI Tool
         run: |
-          # Télécharge l'outil officiel de Blender pour packager les extensions
           pip install git+https://blender.org
 
       - name: Build Repository Structure
         run: |
-          # 1. Crée la structure requise par Blender
-          mkdir -p repo/extensions/bonk
+          # Crée un sous dossier de travail temporaire pour isoler l'extension
+          mkdir -p build_dir/bonk
           
-          # 2. Copie vos fichiers sources dans le dossier de build (en excluant les éléments Git/CI)
-          rsync -av --progress . repo/extensions/bonk/ --exclude repo --exclude .git --exclude .github --exclude README.md
+          # Copie proprement vos fichiers de dev dans ce sous-dossier
+          rsync -av --progress . build_dir/bonk/ --exclude build_dir --exclude .git --exclude .github --exclude README.md
           
-          # 3. Génère le fichier index.json obligatoire et le fichier .zip final
-          blender-extensions-cli build --repo-dir=repo/
+          # Crée le catalogue final dans un dossier nommé "docs" (idéal pour GitHub Pages)
+          mkdir -p docs
+          blender-extensions-cli build --source-dir=build_dir/bonk --output-dir=docs
+          blender-extensions-cli server-generate --repo-dir=docs
 
       - name: Upload Zip to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: repo/extensions/bonk/*.zip
+          files: docs/*.zip
 
-      - name: Commit and Push index.json to GitHub Pages
+      - name: Deploy to Main Branch
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # On déplace l'index.json à la racine ou dans un dossier suivi pour GitHub Pages
-          # Dans cet exemple, on pousse les fichiers générés sur la branche principale pour mettre à jour Pages
-          git add repo/
+          git add docs/
           git commit -m "Chore: Update extension repository index [skip ci]"
           git push origin main
