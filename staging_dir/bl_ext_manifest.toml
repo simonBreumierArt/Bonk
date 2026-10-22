@@ -1,8 +1,0 @@
-schema_version = "1.0.0"
-id = "bonk"
-version = "1.0.6"
-title = "Bonk Toolset"
-tagline = "Tools for modeling."
-maintainer = "Simon Breumier"
-type = "add-on"
-blender_version_min = "4.2.0"
