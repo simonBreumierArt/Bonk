@@ -1,10 +1,10 @@
 schema_version = "1.0.0"
 
 id = "bonk"
-version = "1.0.3"
+version = "1.0.0"
 title = "Bonk"
-tagline = "Tools for modeling."
-maintainer = "Simon Breumier"
+tagline = "Tools"
+maintainer = "Simon"
 type = "add-on"
 
 blender_version_min = "4.2.0"
