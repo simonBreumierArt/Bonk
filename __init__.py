@@ -542,8 +542,8 @@ class VIEW3D_PT_HIdeExport_panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     
-    bl_category = "HideExport" 
-    bl_label = "HideExport" 
+    bl_category = "Bonk" 
+    bl_label = "Bonk" 
 
     def draw(self, context):
         """define the layout of the panel"""
