@@ -24,18 +24,16 @@ jobs:
       - name: Update Version in Manifest
         shell: bash
         run: |
+          # 1. Récupère le tag de la release (ex: v1.2.3)
           TAG_VERSION="${{ github.event.release.tag_name }}"
+          
+          # 2. Nettoie le 'v' initial (ex: 1.2.3)
           CLEAN_VERSION=$(echo "$TAG_VERSION" | sed 's/^v//')
-          python -c "
-          with open('bl_ext_manifest.toml', 'r') as f:
-              lines = f.readlines()
-          with open('bl_ext_manifest.toml', 'w') as f:
-              for line in lines:
-                  if line.strip().startswith('version ='):
-                      f.write(f'version = \"{CLEAN_VERSION}\"\n')
-                  else:
-                      f.write(line)
-          "
+          echo "Mise à jour du manifest avec la version : $CLEAN_VERSION"
+          
+          # 3. Remplace directement la ligne version = "..." dans le fichier TOML
+          sed -i "s/^version = .*/version = \"$CLEAN_VERSION\"/" bl_ext_manifest.toml
+
 
       - name: Download Blender CLI Tool
         run: |
