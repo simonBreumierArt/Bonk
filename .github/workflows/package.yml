@@ -21,39 +21,39 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Build Pure UTF-8 Repository
+            - name: Build Pure UTF-8 Repository
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           CLEAN_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
-          export ASSIGNED_VERSION="$CLEAN_VERSION"
-
-          # 1. On crée une arborescence temporaire totalement isolée et propre
+          
+          # On crée proprement nos répertoires cibles
           mkdir -p staging_dir
           mkdir -p docs/extensions
 
-          # 2. Script Python qui génère un manifest TOML TOUT NEUF et STRICTEMENT encodé en UTF-8 sans BOM
+          # On passe la version propre au script Python via l'environnement système pour éliminer les conflits de guillemets
+          export ASSIGNED_VERSION="$CLEAN_VERSION"
+
           python -c "
           import os, json
 
           clean_version = os.environ.get('ASSIGNED_VERSION', '1.0.0')
 
-          # Définition brute du manifest en texte pur sans aucun caractère spécial
+          # 1. Génération du manifest TOML stérile
           manifest_content = f'''schema_version = \"1.0.0\"
           id = \"bonk\"
           version = \"{clean_version}\"
           title = \"Bonk Toolset\"
-          tagline = \"Tools for hard surface modeling.\"
+          tagline = \"Tools for modeling.\"
           maintainer = \"Simon Breumier\"
           type = \"add-on\"
           blender_version_min = \"4.2.0\"
           '''
 
-          # Écriture forcée en UTF-8 strict (w = sans BOM)
           with open('staging_dir/bl_ext_manifest.toml', 'w', encoding='utf-8', newline='\n') as f:
               f.write(manifest_content)
 
-          # Génération de l'index.json distant pour Blender
+          # 2. Génération de l'index.json stérile et STRICTEMENT encodé sans injection de chaîne Bash directe
           index_data = {
               'schema_version': '1.0.0',
               'extensions': [
@@ -69,17 +69,15 @@ jobs:
 
           with open('docs/index.json', 'w', encoding='utf-8', newline='\n') as f:
               json.dump(index_data, f, indent=4)
-          print('Manifest et index.json stériles générés en UTF-8 !')
+          print('index.json valide généré en UTF-8 !')
           "
 
-          # 3. On copie UNIQUEMENT vos fichiers Python de dev dans le dossier propre
-          # Cela exclut absolument tous les fichiers cachés, caches, ou fichiers système Windows/Mac
+          # 3. Copie des fichiers Python et compression
           cp *.py staging_dir/
-
-          # 4. On compresse UNIQUEMENT le contenu du dossier stérile
           cd staging_dir
           zip -r ../docs/extensions/bonk.zip .
           cd ..
+
 
       - name: Upload Zip to Release
         uses: softprops/action-gh-release@v2
