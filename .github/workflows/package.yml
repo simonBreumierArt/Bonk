@@ -12,50 +12,75 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
         with:
-          fetch-depth: 0 # Permet d'avoir tout l'historique pour les pushs
+          fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.10'
 
       - name: Update Version in Manifest
         shell: bash
         run: |
-          # 1. Récupère le tag de la release (ex: v1.2.3)
           TAG_VERSION="${{ github.event.release.tag_name }}"
-          
-          # 2. Nettoie le 'v' initial (ex: 1.2.3)
           CLEAN_VERSION=$(echo "$TAG_VERSION" | sed 's/^v//')
           echo "Mise à jour du manifest avec la version : $CLEAN_VERSION"
-          
-          # 3. Remplace directement la ligne version = "..." dans le fichier TOML
           sed -i "s/^version = .*/version = \"$CLEAN_VERSION\"/" bl_ext_manifest.toml
 
-
-      - name: Download Blender CLI Tool
+      - name: Create Zip Package
         run: |
-          pip install blender-extensions-cli
-
-      - name: Build Repository Structure
-        run: |
-          # Crée un sous dossier de travail temporaire pour isoler l'extension
-          mkdir -p build_dir/bonk
-          
-          # Copie proprement vos fichiers de dev dans ce sous-dossier
-          rsync -av --progress . build_dir/bonk/ --exclude build_dir --exclude .git --exclude .github --exclude README.md
-          
-          # Crée le catalogue final dans un dossier nommé "docs" (idéal pour GitHub Pages)
           mkdir -p docs
-          blender-extensions-cli build --source-dir=build_dir/bonk --output-dir=docs
-          blender-extensions-cli server-generate --repo-dir=docs
+          # Remplacez "bonk.zip" par le nom souhaité pour l'archive de votre addon
+          zip -r docs/bonk.zip * -x "docs*" "build_dir*" "README.md" ".git*"
+
+      - name: Generate Extension Index JSON
+        shell: bash
+        run: |
+          # Script Python autonome qui lit votre manifest.toml pour créer l'index.json requis par Blender
+          python -c "
+          import json, re
+
+          with open('bl_ext_manifest.toml', 'r') as f:
+              content = f.read()
+
+          def get_val(key):
+              match = re.search(rf'^{key}\s*=\s*\"([^\"]+)\"', content, re.MULTILINE)
+              return match.group(1) if match else ''
+
+          addon_id = get_val('id')
+          version = get_val('version')
+
+          index_data = {
+              'schema_version': '1.0.0',
+              'extensions': [
+                  {
+                      'id': addon_id,
+                      'version': version,
+                      'archive_url': f'extensions/{addon_id}.zip',
+                      'archive_size': 0, 
+                      'archive_hash': ''
+                  }
+              ]
+          }
+
+          # Création de l'arborescence finale pour GitHub Pages
+          import os
+          os.makedirs('docs/extensions', exist_ok=True)
+          
+          # Déplacement du fichier ZIP généré dans le bon dossier attendu par l'index
+          os.rename('docs/bonk.zip', f'docs/extensions/{addon_id}.zip')
+
+          with open('docs/index.json', 'w') as f:
+              json.dump(index_data, f, indent=4)
+          print('Fichier index.json généré avec succès !')
+          "
 
       - name: Upload Zip to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: docs/*.zip
+          files: docs/extensions/*.zip
 
       - name: Deploy to Main Branch
         run: |
