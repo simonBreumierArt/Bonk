@@ -21,73 +21,70 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Process Manifest and Generate Repository
-        shell: bash
-        # On passe proprement la version nettoyée à l'environnement global de l'étape
+      - name: Build Pure UTF-8 Repository
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          # 1. Nettoyage du 'v' initial de la version en Bash
           CLEAN_VERSION=$(echo "$RELEASE_TAG" | sed 's/^v//')
-          echo "Version détectée : $CLEAN_VERSION"
-          
-          # On exporte la variable pour que le sous-processus Python puisse la lire
           export ASSIGNED_VERSION="$CLEAN_VERSION"
 
-          # 2. Script Python autonome utilisant l'environnement sécurisé
-          python -c "
-          import json, re, os
+          # 1. On crée une arborescence temporaire totalement isolée et propre
+          mkdir -p staging_dir
+          mkdir -p docs/extensions
 
-          # Récupération de la version depuis l'environnement système
+          # 2. Script Python qui génère un manifest TOML TOUT NEUF et STRICTEMENT encodé en UTF-8 sans BOM
+          python -c "
+          import os, json
+
           clean_version = os.environ.get('ASSIGNED_VERSION', '1.0.0')
 
-          # Lecture forcée en UTF-8 pour éviter l'erreur d'encodage
-          with open('bl_ext_manifest.toml', 'r', encoding='utf-8') as f:
-              content = f.read()
-          
-          # Remplacement propre de la version dans le fichier TOML
-          if 'version =' in content:
-              content = re.sub(r'^version\s*=\s*.*', f'version = \"{clean_version}\"', content, flags=re.MULTILINE)
-          else:
-              content += f'\nversion = \"{clean_version}\"\n'
-              
-          with open('bl_ext_manifest.toml', 'w', encoding='utf-8') as f:
-              f.write(content)
+          # Définition brute du manifest en texte pur sans aucun caractère spécial
+          manifest_content = f'''schema_version = \"1.0.0\"
+          id = \"bonk\"
+          version = \"{clean_version}\"
+          title = \"Bonk Toolset\"
+          tagline = \"Tools for hard surface modeling.\"
+          maintainer = \"Simon Breumier\"
+          type = \"add-on\"
+          blender_version_min = \"4.2.0\"
+          '''
 
-          # Récupération de l'ID de l'addon depuis le manifest
-          match = re.search(r'^id\s*=\s*\"([^\"]+)\"', content, re.MULTILINE)
-          addon_id = match.group(1) if match else 'bonk'
+          # Écriture forcée en UTF-8 strict (w = sans BOM)
+          with open('staging_dir/bl_ext_manifest.toml', 'w', encoding='utf-8', newline='\n') as f:
+              f.write(manifest_content)
 
-          # Génération de la structure JSON de l'index avec l'URL absolue complète
+          # Génération de l'index.json distant pour Blender
           index_data = {
               'schema_version': '1.0.0',
               'extensions': [
                   {
-                      'id': addon_id,
+                      'id': 'bonk',
                       'version': clean_version,
-                      'archive_url': f'https://github.io{addon_id}.zip',
+                      'archive_url': f'https://github.io',
                       'archive_size': 0, 
                       'archive_hash': ''
                   }
               ]
           }
 
-          os.makedirs('docs/extensions', exist_ok=True)
-          with open('docs/index.json', 'w', encoding='utf-8') as f:
+          with open('docs/index.json', 'w', encoding='utf-8', newline='\n') as f:
               json.dump(index_data, f, indent=4)
-          print('Manifest mis a jour et index.json genere avec succes !')
+          print('Manifest et index.json stériles générés en UTF-8 !')
           "
 
-      - name: Create Zip Package
-        run: |
-          # Crée l'archive finale en forçant l'encodage UTF-8 natif pour éviter les erreurs d'octets Linux/Windows
-          zip -UN=UTF8 -r docs/extensions/bonk.zip * -x "docs*" "README.md" ".git*"
+          # 3. On copie UNIQUEMENT vos fichiers Python de dev dans le dossier propre
+          # Cela exclut absolument tous les fichiers cachés, caches, ou fichiers système Windows/Mac
+          cp *.py staging_dir/
 
+          # 4. On compresse UNIQUEMENT le contenu du dossier stérile
+          cd staging_dir
+          zip -r ../docs/extensions/bonk.zip .
+          cd ..
 
       - name: Upload Zip to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: docs/extensions/*.zip
+          files: docs/extensions/bonk.zip
 
       - name: Deploy to Main Branch
         uses: mikeal/publish-to-github-action@master
