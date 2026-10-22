@@ -1,0 +1,14 @@
+schema_version = "1.0.0"
+
+id = "bonk"
+version = "1.0.0"
+title = "Bonk"
+tagline = "A set of hard surface modeling tools for blender"
+maintainer = "Simon <votre.email@example.com>"
+type = "add-on"
+
+# Versions de Blender minimales et maximales supportées
+blender_version_min = "4.2.0"
+
+# Liens vers votre repository GitHub
+website = "https://github.com/simonBreumierArt/Bonk"
