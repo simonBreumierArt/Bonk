@@ -1,0 +1,12 @@
+{
+    "schema_version": "1.0.0",
+    "extensions": [
+        {
+            "id": "bonk",
+            "version": "1.0.0-test3",
+            "archive_url": "extensions/bonk.zip",
+            "archive_size": 0,
+            "archive_hash": ""
+        }
+    ]
+}
