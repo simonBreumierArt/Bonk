@@ -37,7 +37,7 @@ jobs:
 
       - name: Download Blender CLI Tool
         run: |
-          pip install git+https://blender.org
+          pip install blender-extensions-cli
 
       - name: Build Repository Structure
         run: |
