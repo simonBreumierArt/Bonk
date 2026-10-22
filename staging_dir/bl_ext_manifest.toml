@@ -1,0 +1,8 @@
+schema_version = "1.0.0"
+id = "bonk"
+version = "1.0.4"
+title = "Bonk Toolset"
+tagline = "Tools for hard surface modeling."
+maintainer = "Simon Breumier"
+type = "add-on"
+blender_version_min = "4.2.0"
